@@ -46,3 +46,6 @@ data/
     │   ...
     └── zebra/
 ```
+
+**Note:** Within this project, dataset splits are named differently for clarity: `train/` -> development set 
+(combination of train and validation), `validate/` -> test set.
