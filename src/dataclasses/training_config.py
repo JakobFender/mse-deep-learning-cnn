@@ -1,4 +1,4 @@
-from pathlib import Path
+import torch
 from typing import Literal, Optional
 
 from pydantic import BaseModel
@@ -31,6 +31,7 @@ class AugmentationConfig(BaseModel):
 class BaseTrainingConfig(BaseModel):
     epochs: int = 50
     batch_size: int = 32
+    device: str = "cuda" if torch.cuda.is_available() else "cpu"
     optimizer: Literal["adam", "sgd", "rmsprop"] = "adam"
     learning_rate: float = 0.001
     momentum: float = 0.9  # SGD only
