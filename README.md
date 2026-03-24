@@ -18,7 +18,7 @@ All authors contributed equally (alphabetical order by last name).
 
 ## Setup
 
-Developed with **Python 3.12**. It is recommended to use a virtual environment:
+Developed with **Python 3.14**. It is recommended to use a virtual environment:
 ```bash
 python -m venv .venv
 source .venv/bin/activate
