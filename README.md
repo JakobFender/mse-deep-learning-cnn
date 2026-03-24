@@ -28,3 +28,21 @@ Then install dependencies with:
 ```bash
 pip install -r requirements.txt
 ```
+
+## Data
+
+The dataset can be downloaded from [SWITCHdrive](https://drive.switch.ch/index.php/s/NTiYe8mamrgys3M). Extract the zip 
+and ensure the data matches the following structure:
+```
+data/
+├── train/
+│   ├── cat/
+│   ├── chicken/
+│   │   ...
+│   └── zebra/
+└── validate/
+    ├── cat/
+    ├── chicken/
+    │   ...
+    └── zebra/
+```
