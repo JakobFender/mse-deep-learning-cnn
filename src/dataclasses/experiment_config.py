@@ -12,6 +12,8 @@ class TuneParameter(BaseModel):
 class ExperimentConfig(BaseModel):
     search_strategy: Literal["grid", "bayesian"] = "bayesian"
     tune_parameter: list[TuneParameter]
+    n_trials: int
+    direction: str = "maximize"
 
     @model_validator(mode="after")
     def check_number_of_entries(self):
