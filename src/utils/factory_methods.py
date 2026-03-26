@@ -1,5 +1,7 @@
 from typing import Optional, Callable
 
+from torch.nn import Module
+from torch.optim import Optimizer, Adam, SGD, RMSprop
 from torch.utils.data import DataLoader
 from torchvision.datasets import ImageFolder
 from torchvision.transforms import Compose
@@ -103,3 +105,46 @@ def get_transforms(config: TrainingConfig) -> tuple[Compose, Compose]:
     train_transforms.append(Normalize(mean=config.data.mean, std=config.data.std))
 
     return Compose(train_transforms), Compose(val_transforms)
+
+
+def get_optimizer(config: TrainingConfig, model: Module) -> Optimizer:
+    """
+    Selects and returns the optimizer as specified by the given training configuration. This function
+    supports multiple optimizer types such as Adam, SGD, and RMSprop and configures them with parameters
+    provided in the configuration and model. If an unsupported optimizer type is specified, it raises
+    a ValueError.
+
+    Args:
+        config (TrainingConfig): The training configuration object specifying optimizer settings, such
+            as the optimizer type, learning rate, momentum, and weight decay.
+        model (Module): The model whose parameters will be optimized, typically an instance of a neural
+            network module.
+
+    Returns:
+        Optimizer: The selected optimizer configured with the parameters from the given configuration
+            and model.
+
+    Raises:
+        ValueError: If an unsupported optimizer type is specified in the configuration.
+    """
+    if config.optimizer == "adam":
+        return Adam(
+            params=model.parameters(),
+            lr=config.learning_rate,
+            weight_decay=config.weight_decay
+        )
+    elif config.optimizer == "sgd":
+        return SGD(
+            params=model.parameters(),
+            lr=config.learning_rate,
+            momentum=config.momentum,
+            weight_decay=config.weight_decay
+        )
+    elif config.optimizer == "rmsprop":
+        return RMSprop(
+            params=model.parameters(),
+            lr=config.learning_rate,
+            weight_decay=config.weight_decay
+        )
+    else:
+        raise ValueError(f"Unsupported optimizer: {config.optimizer}")
