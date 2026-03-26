@@ -1,6 +1,6 @@
-import torch
 from typing import Literal, Optional
 
+import torch
 from pydantic import BaseModel
 
 
@@ -28,10 +28,11 @@ class AugmentationConfig(BaseModel):
     color_jitter_config: Optional[ColorJitterConfig] = None
 
 
-class BaseTrainingConfig(BaseModel):
+class TrainingConfig(BaseModel):
     epochs: int = 50
     batch_size: int = 32
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
+    data: DataConfig
     optimizer: Literal["adam", "sgd", "rmsprop"] = "adam"
     learning_rate: float = 0.001
     momentum: float = 0.9  # SGD only
