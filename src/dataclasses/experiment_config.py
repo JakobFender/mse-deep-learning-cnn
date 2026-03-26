@@ -1,38 +1,22 @@
-from typing import Optional, Literal
+from typing import Literal, Optional
 
-from itertools import product
-from pydantic import BaseModel
-
-from src.dataclasses.training_config import BaseTrainingConfig
+from pydantic import BaseModel, model_validator
 
 
-class GridConfig(BaseModel):
-    learning_rate: Optional[list[float]] = None
-    batch_size: Optional[list[int]] = None
-    optimizer: Optional[list[Literal["adam", "sgd", "rmsprop"]]] = None
-    dropout: Optional[list[float]] = None
-    weight_decay: Optional[list[float]] = None
-
+class TuneParameter(BaseModel):
+    name: str
+    min: float
+    max: float
+    number_of_entries: Optional[int] = None
 
 class ExperimentConfig(BaseModel):
-    name: str
-    grid: GridConfig
+    strategy: Literal["grid", "bayesian"] = "bayesian"
+    tune_parameter: list[TuneParameter]
 
-
-    def generate_runs(self, base: BaseTrainingConfig):
-        """
-        Generates a series of training runs by creating variations of the input base configuration
-        using a specified grid of parameter combinations.
-
-        :param base: The base configuration for training. This configuration serves as the template
-            that will be updated with different combinations of parameters based on the specified grid.
-        :type base: BaseTrainingConfig
-
-        :yield: A sequence of updated configurations for each combination of parameters in the grid.
-        :rtype: Iterator[BaseTrainingConfig]
-        """
-        grid = {k: v for k, v in self.grid.model_dump().items() if v is not None}
-        keys, values = zip(*grid.items())
-        for combo in product(*values):
-            override = dict(zip(keys, combo))
-            yield base.model_copy(update=override)
+    @model_validator(mode="after")
+    def check_number_of_entries(self):
+        if self.strategy == "grid":
+            missing = [p.name for p in self.tune_parameter if p.number_of_entries is None]
+            if missing:
+                raise ValueError(f"Parameters {missing} must have number_of_entries set when strategy is 'grid'.")
+        return self
