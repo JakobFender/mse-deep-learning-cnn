@@ -1,6 +1,7 @@
 from pathlib import Path
 
-PROJECT_ROOT = Path(".").parent.parent
+PROJECT_ROOT = Path(__file__).parent.parent.parent
+DATA_FOLDER = PROJECT_ROOT / "data"
 
-DEVELOPMENT_SET_FOLDER = PROJECT_ROOT / "train"
-TEST_SET_FOLDER = PROJECT_ROOT / "validate"
+TRAIN_SET_FOLDER = DATA_FOLDER / "train"
+VALIDATE_SET_FOLDER = DATA_FOLDER / "validate"
