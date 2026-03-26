@@ -8,7 +8,6 @@ class DataConfig(BaseModel):
     image_size: int = 224
     num_classes: int = 10
     num_workers: int = 4
-    development_set_split: float = 0.25  # 24000 * 0.25 = 6000
     mean: tuple[float, float, float]
     std: tuple[float, float, float]
 
