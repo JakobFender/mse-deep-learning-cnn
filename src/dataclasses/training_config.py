@@ -1,8 +1,15 @@
 from typing import Literal, Optional
 
 import torch
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
+
+def _get_device() -> str:
+    if torch.cuda.is_available():
+        return "cuda"
+    if torch.backends.mps.is_available():
+        return "mps"
+    return "cpu"
 
 class DataConfig(BaseModel):
     image_size: int = 224
@@ -30,7 +37,7 @@ class AugmentationConfig(BaseModel):
 class TrainingConfig(BaseModel):
     epochs: int = 50
     batch_size: int = 32
-    device: str = "cuda" if torch.cuda.is_available() else "cpu"
+    device: str = Field(default_factory=_get_device)
     data: DataConfig
     optimizer: Literal["adam", "sgd", "rmsprop"] = "adam"
     learning_rate: float = 0.001
