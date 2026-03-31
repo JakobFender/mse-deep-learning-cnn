@@ -10,6 +10,7 @@ from torchvision.transforms.v2 import Resize, ToTensor, Normalize, RandomHorizon
 from torchvision.transforms.v2 import Transform
 
 from src.dataclasses.training_config import TrainingConfig
+from src.model.cnn import CNN
 from src.utils.constants import TRAIN_SET_FOLDER, VALIDATE_SET_FOLDER
 
 
@@ -148,3 +149,25 @@ def get_optimizer(config: TrainingConfig, model: Module) -> Optimizer:
         )
     else:
         raise ValueError(f"Unsupported optimizer: {config.optimizer}")
+
+
+def get_model(config: TrainingConfig) -> CNN:
+    """
+    Instantiates a CNN from a TrainingConfig.
+
+    Args:
+        config: Training configuration containing model and data parameters.
+
+    Returns:
+        CNN model moved to the device specified in config.
+    """
+    model = CNN(
+        num_classes=config.data.num_classes,
+        channels=config.model.channels,
+        fc_hidden_size=config.model.fc_hidden_size,
+        kernel_size=config.model.kernel_size,
+        pool_size=config.model.pool_size,
+        dropout_p=config.dropout,
+        input_size=config.data.image_size,
+    )
+    return model.to(config.device)
