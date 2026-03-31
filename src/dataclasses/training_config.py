@@ -34,11 +34,18 @@ class AugmentationConfig(BaseModel):
     color_jitter_config: Optional[ColorJitterConfig] = None
 
 
+class ModelConfig(BaseModel):
+    channels: tuple[int, ...] = (32, 64, 128)
+    fc_hidden_size: int = 512
+    kernel_size: int = 3
+    pool_size: int = 2
+
 class TrainingConfig(BaseModel):
     epochs: int = 50
     batch_size: int = 32
     device: str = Field(default_factory=_get_device)
     data: DataConfig
+    model: ModelConfig = Field(default_factory=ModelConfig)
     optimizer: Literal["adam", "sgd", "rmsprop"] = "adam"
     learning_rate: float = 0.001
     momentum: float = 0.9  # SGD only
