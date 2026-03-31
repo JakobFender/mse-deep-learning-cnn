@@ -58,6 +58,9 @@ class CNN(nn.Module):
         pooled_size = input_size // (pool_size ** len(channels))
         flat_size = channels[-1] * pooled_size * pooled_size
 
+        if flat_size >= 100_000:
+            print(f"WARNING: Final flat layer is {flat_size}. This results in a very large parameter count.")
+
         classifier_layers: list = [
             nn.Flatten(),
             nn.Linear(flat_size, fc_hidden_size),
