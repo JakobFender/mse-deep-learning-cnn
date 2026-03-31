@@ -4,19 +4,27 @@ from torch import nn
 
 class CNN(nn.Module):
     """
-    A 3-layer Convolutional Neural Network.
+    A configurable Convolutional Neural Network.
 
     Architecture:
-        Conv Layer 1 → BatchNorm → ReLU → MaxPool
-        Conv Layer 2 → BatchNorm → ReLU → MaxPool (Not sure if we decided on doing this or not?)
-        Conv Layer 3 → BatchNorm → ReLU → MaxPool
-        Flatten → Fully Connected → Dropout → Output (10 classes)
+        [Conv2d -> BatchNorm2d -> ReLU -> MaxPool2d] * N
+        -> Flatten -> Linear -> ReLU -> (Dropout) -> Linear
+
+    Args:
+        num_classes: Number of output classes.
+        channels: Output channels per conv block. Its length defines
+                         the number of blocks (e.g. (32, 64, 128) -> 3 blocks).
+        fc_hidden_size: Number of units in the FC hidden layer.
+        dropout_p: Dropout probability (0.0 disables dropout).
+        kernel_size: Convolutional kernel size (applied to all blocks).
+        pool_size: Max-pool kernel size and stride (applied to all blocks).
+        input_size: Spatial size of the input (assumed square, e.g. 128).
     """
 
     def __init__(
             self,
             num_classes: int = 10,
-            channels: tuple[int, int, int] = (32, 64, 128),
+            channels: tuple[int, ...] = (32, 64, 128),
             fc_hidden_size: int = 512,
             dropout_p: float = 0.5,
             kernel_size: int = 3,
@@ -25,32 +33,30 @@ class CNN(nn.Module):
     ):
         super(CNN, self).__init__()
 
-        c1, c2, c3 = channels
-        padding = kernel_size // 2  # Preserve spatial dims before pooling
-
-        self.conv_block1 = nn.Sequential(
-            nn.Conv2d(3, c1, kernel_size=kernel_size, padding=padding),
-            nn.BatchNorm2d(c1),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=pool_size, stride=pool_size),
+        assert len(channels) >= 1, "Must have at least one conv block."
+        assert input_size // (pool_size ** len(channels)) >= 1, (
+            f"Too many pooling layers: spatial size collapses to 0 with "
+            f"input_size={input_size}, pool_size={pool_size}, "
+            f"num_blocks={len(channels)}."
         )
 
-        self.conv_block2 = nn.Sequential(
-            nn.Conv2d(c1, c2, kernel_size=kernel_size, padding=padding),
-            nn.BatchNorm2d(c2),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=pool_size, stride=pool_size),
-        )
+        padding = kernel_size // 2  # "same" spatial dims before pooling
 
-        self.conv_block3 = nn.Sequential(
-            nn.Conv2d(c2, c3, kernel_size=kernel_size, padding=padding),
-            nn.BatchNorm2d(c3),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=pool_size, stride=pool_size),
-        )
+        in_ch = 3
+        blocks = []
+        for out_ch in channels:
+            blocks.append(nn.Sequential(
+                nn.Conv2d(in_ch, out_ch, kernel_size=kernel_size, padding=padding),
+                nn.BatchNorm2d(out_ch),
+                nn.ReLU(inplace=True),
+                nn.MaxPool2d(kernel_size=pool_size, stride=pool_size),
+            ))
+            in_ch = out_ch
 
-        pooled_size = input_size // (pool_size ** 3)
-        flat_size = c3 * pooled_size * pooled_size
+        self.conv_blocks = nn.ModuleList(blocks)
+
+        pooled_size = input_size // (pool_size ** len(channels))
+        flat_size = channels[-1] * pooled_size * pooled_size
 
         classifier_layers: list = [
             nn.Flatten(),
@@ -65,9 +71,17 @@ class CNN(nn.Module):
         self.classifier = nn.Sequential(*classifier_layers)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Forward pass: run input through conv blocks then classifier."""
-        x = self.conv_block1(x)
-        x = self.conv_block2(x)
-        x = self.conv_block3(x)
+        """
+        Performs a forward pass through the neural network.
+
+        Args:
+            x (torch.Tensor): Input tensor to the model, expected to have dimensions suitable
+                for the first convolutional block.
+
+        Returns:
+            torch.Tensor: Output tensor containing raw logits representing class scores.
+        """
+        for block in self.conv_blocks:
+            x = block(x)
         x = self.classifier(x)
-        return x  # Raw logits — CrossEntropyLoss handles softmax internally
+        return x
