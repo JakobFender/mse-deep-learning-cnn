@@ -13,51 +13,56 @@ class CNN(nn.Module):
         Flatten → Fully Connected → Dropout → Output (10 classes)
     """
 
-    def __init__(self, num_classes: int = 10):
+    def __init__(
+            self,
+            num_classes: int = 10,
+            channels: tuple[int, int, int] = (32, 64, 128),
+            fc_hidden_size: int = 512,
+            dropout_p: float = 0.5,
+            kernel_size: int = 3,
+            pool_size: int = 2,
+            input_size: int = 128,
+    ):
         super(CNN, self).__init__()
 
-        # Convolutional block 1
-        # Input:  (batch, 3, 128, 128)  — 3 RGB channels
-        # Output: (batch, 32, 64, 64)   — after conv + 2x2 max-pool
+        c1, c2, c3 = channels
+        padding = kernel_size // 2  # Preserve spatial dims before pooling
+
         self.conv_block1 = nn.Sequential(
-            nn.Conv2d(in_channels=3, out_channels=32,
-                      kernel_size=3, padding=1),
-            nn.BatchNorm2d(32),
+            nn.Conv2d(3, c1, kernel_size=kernel_size, padding=padding),
+            nn.BatchNorm2d(c1),
             nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=2, stride=2),
+            nn.MaxPool2d(kernel_size=pool_size, stride=pool_size),
         )
 
-        # Convolutional block 2
-        # Input:  (batch, 32, 64, 64)
-        # Output: (batch, 64, 32, 32)
         self.conv_block2 = nn.Sequential(
-            nn.Conv2d(in_channels=32, out_channels=64,
-                      kernel_size=3, padding=1),
-            nn.BatchNorm2d(64),
+            nn.Conv2d(c1, c2, kernel_size=kernel_size, padding=padding),
+            nn.BatchNorm2d(c2),
             nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=2, stride=2),  # 64→32
+            nn.MaxPool2d(kernel_size=pool_size, stride=pool_size),
         )
 
-        # Convolutional block 3
-        # Input:  (batch, 64, 32, 32)
-        # Output: (batch, 128, 16, 16)
         self.conv_block3 = nn.Sequential(
-            nn.Conv2d(in_channels=64, out_channels=128,
-                      kernel_size=3, padding=1),
-            nn.BatchNorm2d(128),
+            nn.Conv2d(c2, c3, kernel_size=kernel_size, padding=padding),
+            nn.BatchNorm2d(c3),
             nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=2, stride=2),  # 32→16
+            nn.MaxPool2d(kernel_size=pool_size, stride=pool_size),
         )
 
-        # Fully connected classifier
-        # Flattened feature vector: 128 channels × 16 × 16 = 32768
-        self.classifier = nn.Sequential(
-            nn.Flatten(),  # (batch, 128, 16, 16) → (batch, 32768)
-            nn.Linear(128 * 16 * 16, 512),  # Fully connected layer
+        pooled_size = input_size // (pool_size ** 3)
+        flat_size = c3 * pooled_size * pooled_size
+
+        classifier_layers: list = [
+            nn.Flatten(),
+            nn.Linear(flat_size, fc_hidden_size),
             nn.ReLU(inplace=True),
-            nn.Dropout(p=0.5),  # Think I should leave this out for now and use it later in the regularization?
-            nn.Linear(512, num_classes),  # Output one logit per class
-        )
+        ]
+
+        if dropout_p > 0.0:
+            classifier_layers.append(nn.Dropout(p=dropout_p))
+        classifier_layers.append(nn.Linear(fc_hidden_size, num_classes))
+
+        self.classifier = nn.Sequential(*classifier_layers)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass: run input through conv blocks then classifier."""
